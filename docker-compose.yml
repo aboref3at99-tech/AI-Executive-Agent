@@ -1,0 +1,122 @@
+# AI Executive Agent - Docker Compose Configuration
+# Start the full stack with: docker-compose up -d
+
+version: '3.8'
+
+services:
+  # ChromaDB - Vector Database for Memory
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: ai-agent-chroma
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=True
+      - PERSIST_DIRECTORY=/chroma/chroma
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-agent-network
+
+  # PostgreSQL - Optional Database for Structured Data
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai-agent-postgres
+    environment:
+      POSTGRES_USER: agent
+      POSTGRES_PASSWORD: agent_secure_password_123
+      POSTGRES_DB: agent_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-agent-network
+
+  # Redis - Caching Layer
+  redis:
+    image: redis:7-alpine
+    container_name: ai-agent-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-agent-network
+
+  # AI Executive Agent - Main Application
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-executive-agent
+    ports:
+      - "8080:8080"
+    environment:
+      # Google Gemini
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GEMINI_MODEL=gemini-pro
+      
+      # Comet ML
+      - COMET_API_KEY=${COMET_API_KEY}
+      - COMET_WORKSPACE=${COMET_WORKSPACE}
+      - COMET_PROJECT_NAME=ai-executive-agent
+      
+      # Opik
+      - OPIK_API_KEY=${OPIK_API_KEY}
+      
+      # Database
+      - CHROMA_HOST=chroma
+      - CHROMA_PORT=8000
+      - DATABASE_URL=postgresql://agent:agent_secure_password_123@postgres:5432/agent_db
+      - CACHE_BACKEND=redis
+      - REDIS_URL=redis://redis:6379
+      
+      # Browser
+      - BROWSER_HEADLESS=true
+      - BROWSER_TIMEOUT=30000
+      
+      # Logging
+      - LOG_LEVEL=INFO
+    depends_on:
+      chroma:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config
+    networks:
+      - ai-agent-network
+    restart: unless-stopped
+
+volumes:
+  chroma_data:
+    driver: local
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  ai-agent-network:
+    driver: bridge
