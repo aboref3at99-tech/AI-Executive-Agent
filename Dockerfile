@@ -1,69 +1,64 @@
-# AI Executive Agent - Production Dockerfile
-# Multi-stage build for optimized image size
+# Multi-stage Docker build for AI Executive Agent with Dashboard
+FROM python:3.12-slim as base
 
-# Stage 1: Builder
-FROM python:3.11-slim as builder
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
-WORKDIR /build
+# Set working directory
+WORKDIR /app
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    curl \
-    git \
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    make \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# ============================================
+# Stage 2: Dependencies
+# ============================================
+FROM base as dependencies
 
 # Copy requirements
 COPY requirements.txt .
 
-# Create virtual environment and install dependencies
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-RUN pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Stage 2: Runtime
-FROM python:3.11-slim
+# Install Playwright browsers (for browser automation)
+RUN playwright install chromium && \
+    playwright install-deps chromium
 
-WORKDIR /app
-
-LABEL maintainer="AI Executive Agent Team"
-LABEL version="1.0.0"
-LABEL description="Intelligent AI-powered automation platform with Comet ML + Opik monitoring"
-
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy virtual environment from builder
-COPY --from=builder /opt/venv /opt/venv
-
-# Set environment path
-ENV PATH="/opt/venv/bin:$PATH" \
-    PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1
-
-# Create necessary directories
-RUN mkdir -p /app/data /app/logs /app/config
+# ============================================
+# Stage 3: Application
+# ============================================
+FROM dependencies as application
 
 # Copy application code
 COPY . .
 
-# Create non-root user for security
-RUN groupadd -r agent && useradd -r -g agent agent
-RUN chown -R agent:agent /app
-USER agent
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+# Create workspace directory
+RUN mkdir -p /app/workspace/openmanus && \
+    mkdir -p /app/logs && \
+    chmod -R 755 /app/workspace /app/logs
 
 # Expose port
-EXPOSE 8080
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8000/health')"
 
 # Default command
-CMD ["python", "main.py", "--interactive"]
+CMD ["uvicorn", "api.server:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+
+# ============================================
+# Alternative: Development mode
+# ============================================
+FROM application as development
+
+CMD ["uvicorn", "api.server:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
