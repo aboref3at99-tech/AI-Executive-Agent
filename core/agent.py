@@ -12,6 +12,7 @@ import comet_ml
 from opik import track
 
 from config.settings import settings
+from core.integrations.openmanus_integration import get_openmanus_integration
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +49,17 @@ class ExecutiveAgent:
         else:
             self.browser_agent = None
         
+        # Initialize OpenManus Agent
+        self.openmanus = get_openmanus_integration(
+            workspace_dir="./workspace/openmanus",
+            enable_monitoring=settings.ENABLE_MONITORING
+        )
+        
         # Initialize crew for multi-agent tasks
         self.crew = None
         self.state_graph = None
         
-        logger.info("✅ Executive Agent initialized successfully")
+        logger.info("✅ Executive Agent initialized successfully with OpenManus")
     
     @track()
     async def execute_browser_task(self, task: str, context: str = "") -> Dict[str, Any]:
@@ -205,7 +212,69 @@ class ExecutiveAgent:
         """Cleanup resources"""
         if self.comet_experiment:
             self.comet_experiment.end()
+        if self.openmanus:
+            self.openmanus.cleanup()
         logger.info("✅ Agent cleanup completed")
+    
+    @track()
+    async def execute_autonomous_task(
+        self, 
+        task: str, 
+        context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Execute a task autonomously using OpenManus
+        
+        Args:
+            task: Task description
+            context: Additional context
+            
+        Returns:
+            Autonomous execution results
+        """
+        logger.info(f"🤖 Executing autonomous task: {task}")
+        return await self.openmanus.execute_autonomous_task(task, context)
+    
+    @track()
+    async def code_generation(
+        self,
+        requirement: str,
+        language: str = "python",
+        include_tests: bool = True
+    ) -> Dict[str, Any]:
+        """Generate code using OpenManus
+        
+        Args:
+            requirement: Code requirements
+            language: Programming language
+            include_tests: Include unit tests
+            
+        Returns:
+            Generated code with tests
+        """
+        logger.info(f"💻 Generating {language} code: {requirement}")
+        return await self.openmanus.code_generation_task(
+            requirement, language, include_tests
+        )
+    
+    @track()
+    async def data_analysis(
+        self,
+        data_description: str,
+        analysis_type: str = "exploratory"
+    ) -> Dict[str, Any]:
+        """Perform data analysis using OpenManus
+        
+        Args:
+            data_description: Description of data
+            analysis_type: Type of analysis
+            
+        Returns:
+            Analysis results with insights
+        """
+        logger.info(f"📊 Performing {analysis_type} analysis: {data_description}")
+        return await self.openmanus.data_analysis_task(
+            data_description, analysis_type
+        )
 
 
 # Global instance

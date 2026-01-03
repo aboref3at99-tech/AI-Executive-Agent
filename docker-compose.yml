@@ -60,14 +60,15 @@ services:
     networks:
       - ai-agent-network
 
-  # AI Executive Agent - Main Application
+  # AI Executive Agent - Main Application with Dashboard
   agent:
     build:
       context: .
       dockerfile: Dockerfile
+      target: application
     container_name: ai-executive-agent
     ports:
-      - "8080:8080"
+      - "8000:8000"  # Dashboard and API
     environment:
       # Google Gemini
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
@@ -92,6 +93,10 @@ services:
       - BROWSER_HEADLESS=true
       - BROWSER_TIMEOUT=30000
       
+      # API Server
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      
       # Logging
       - LOG_LEVEL=INFO
     depends_on:
@@ -105,9 +110,16 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./config:/app/config
+      - ./workspace:/app/workspace
     networks:
       - ai-agent-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   chroma_data:

@@ -42,7 +42,7 @@ class Settings:
     
     # API Configuration
     API_HOST = os.getenv("API_HOST", "0.0.0.0")
-    API_PORT = int(os.getenv("API_PORT", "8000"))
+    API_PORT = int(os.getenv("API_PORT", os.getenv("PORT", "7860")))  # Support Spaces PORT env
     
     # Feature Flags
     ENABLE_MONITORING = os.getenv("ENABLE_MONITORING", "true").lower() == "true"

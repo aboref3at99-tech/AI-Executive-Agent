@@ -53,7 +53,32 @@ The **AI Executive Agent** is a sophisticated multi-agent system designed for co
 
 ### 2. Specialized Agents
 
-#### 2.1 Browser Agent
+#### 2.1 OpenManus Agent
+**Purpose**: Autonomous code execution and intelligent task automation
+
+- **Capabilities**:
+  - Execute Python code autonomously
+  - Generate code from natural language
+  - Perform data analysis and visualization
+  - Self-improve from execution history
+  - Plan and execute multi-step workflows
+  - Manage workspace files and outputs
+
+- **Tools**:
+  - Python Code Generator
+  - Safe Code Executor
+  - Task Planner
+  - Result Analyzer
+  - File Manager
+
+- **Use Cases**:
+  - Automated code generation
+  - Data analysis tasks
+  - Statistical computations
+  - Algorithm implementation
+  - Report generation
+
+#### 2.2 Browser Agent
 **Purpose**: Web automation and data extraction
 
 - **Capabilities**:
@@ -74,7 +99,7 @@ The **AI Executive Agent** is a sophisticated multi-agent system designed for co
   - Data collection
   - User behavior simulation
 
-#### 2.2 Data Agent
+#### 2.3 Data Agent
 **Purpose**: Data processing and transformation
 
 - **Capabilities**:
@@ -96,7 +121,7 @@ The **AI Executive Agent** is a sophisticated multi-agent system designed for co
   - Report generation
   - Data transformation
 
-#### 2.3 Analysis Agent
+#### 2.4 Analysis Agent
 **Purpose**: Insights extraction and decision support
 
 - **Capabilities**:
@@ -118,7 +143,7 @@ The **AI Executive Agent** is a sophisticated multi-agent system designed for co
   - Trend identification
   - Anomaly detection
 
-#### 2.4 Report Agent
+#### 2.5 Report Agent
 **Purpose**: Output generation and delivery
 
 - **Capabilities**:
